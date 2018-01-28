@@ -1,7 +1,7 @@
 <h1 align="center">
-    <img alt="Expat-Stream logo" src="https://github.com/kol-93/expat-stream/blob/master/logo.svg" />
-    <br />
     Expat-Stream
+    <br />
+    <img alt="" src="https://github.com/kol-93/expat-stream/blob/master/logo.svg" />
 </h1>
 
 ## What is Expat-Stream?
