@@ -4,6 +4,9 @@
 .gitignore
 
 source/
+examples/
 
 tsconfig.json
 package-lock.json
+logo.svg
+README.md
