@@ -79,7 +79,7 @@ const stream = new XmlStream(new MyFilter());
 
 The `'data'` events emitted whenever stream is reading closed xml-tag in the input stream and `filter.write({ element, document, level})` returns `true`;
 
-##### Eevnt `'error'`:
+##### Event `'error'`:
  - error `<Object>` Instance of the error.
 
 The `'error'` event can be emitted on syntax error during input stream processing.
