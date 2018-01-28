@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img alt="Expat-Stream logo" src="./logo.svg" />
+    <img alt="Expat-Stream logo" src="https://github.com/kol-93/expat-stream/blob/master/logo.svg" />
     <br />
     Expat-Stream
 </h1>
