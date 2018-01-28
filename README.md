@@ -5,7 +5,9 @@
 </h1>
 
 ## What is Expat-Stream?
-Expat-Stream is a JavaScript/TypeScript stream-like xml processing library for [Node.js](https://nodejs.org) based on [node-expat](https://www.npmjs.com/package/node-expat).
+Expat-Stream is a JavaScript/TypeScript stream-like XML processing library for [Node.js](https://nodejs.org) based on [node-expat](https://www.npmjs.com/package/node-expat).
+
+With this library you can process huge XML streams and files before they end by selecting and keeping only specific elements from the tree. 
 
 ## Installation
 `expat-stream` is available on [npm](https://npmjs.org). To install it type
