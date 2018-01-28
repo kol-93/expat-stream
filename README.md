@@ -87,7 +87,7 @@ The `'error'` event can be emitted on syntax error during input stream processin
 ##### Event: `'end'`:
 The `'end'` event is emitted whenever input stream is closed or right after `'error'` event.
 
-### Parsing string data
+### Parsing string data:
 ```ecmascript 6
 const {XmlStream} = require('expat-stream');
 const stream = new XmlStream({
@@ -104,7 +104,7 @@ stream.on('error', function(error) { /* do something after stream error */ });
 stream.end(data);
 ```
 
-### Parsing a file
+### Parsing a file:
 ```ecmascript 6
 const {createReadStream} = require('fs');
 const {XmlStream} = require('expat-stream');
@@ -123,7 +123,7 @@ stream.on('error', function(error) { /* do something after stream error */ });
 input.pipe(stream);
 ```
 
-### Parsing a network-based stream
+### Parsing a network-based stream:
 ```ecmascript 6
 const {Socket} = require('net');
 const {XmlStream} = require('expat-stream');
@@ -143,7 +143,7 @@ input.pipe(stream);
 input.connect(port, host);
 ```
 
-### Parsing an HTTP response
+### Parsing an HTTP response:
 ```ecmascript 6
 const {request} = require('http');
 const {XmlStream} = require('expat-stream');
@@ -167,5 +167,5 @@ request(requestOptions, function (response) {
     }
 });
 ```
-### Examples
+### Examples:
 You can read an examples in `examples` directory of the repository.
