@@ -5,7 +5,7 @@
 </h1>
 
 ## What is Expat-Stream?
-Expat-Stream is a JavaScript/TypeScript stream-like xml processing library for NodeJS based on node-expat.
+Expat-Stream is a JavaScript/TypeScript stream-like xml processing library for [Node.js](https://nodejs.org) based on [node-expat](https://www.npmjs.com/package/node-expat).
 
 ## Installation
 `expat-stream` is available on [npm](https://npmjs.org). To install it type
@@ -75,7 +75,7 @@ class MyFilter extends ElementFilter {
 const stream = new XmlStream(new MyFilter());
 ```
 ##### Event: `'data'`:
- - chunk `<Object>` Single DOM element, provided by `xmldom`.
+ - chunk `<Object>` Single DOM element, provided by [xmldom](https://www.npmjs.com/package/xmldom).
 
 The `'data'` events emitted whenever stream is reading closed xml-tag in the input stream and `filter.write({ element, document, level})` returns `true`;
 
