@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2015",
+    "sourceMap": true,
+    "declaration": true,
+    "outDir": "distribution",
+    "removeComments": false,
+    "alwaysStrict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "typings/**/*.d.ts",
+    "source/**/*.ts"
+  ],
+  "types": [
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
