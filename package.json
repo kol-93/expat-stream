@@ -1,6 +1,6 @@
 {
   "name": "expat-stream",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "XML stream processor implemented using expat parser",
   "main": "distribution/core/index.js",
   "scripts": {
