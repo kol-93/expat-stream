@@ -124,7 +124,15 @@ declare module "node-expat" {
         prependListener(event: 'error', listener: (error: string | Error) => void): this;
         prependOnceListener(event: 'error', listener: (error: string | Error) => void): this;
         removeListener(event: 'error', listener: (error: string | Error) => void): this;
-
+    
+        addListener(event: 'close', listener: () => void): this;
+        emit(event: 'close', ): boolean;
+        on(event: 'close', listener: () => void): this;
+        once(event: 'close', listener: () => void): this;
+        prependListener(event: 'close', listener: () => void): this;
+        prependOnceListener(event: 'close', listener: () => void): this;
+        removeListener(event: 'close', listener: () => void): this;
+        
         // addListener(event: '', listener: () => void): this;
         // emit(event: '', ): boolean;
         // on(event: '', listener: () => void): this;

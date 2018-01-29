@@ -13,7 +13,9 @@ export class XmlStream extends Transform<string | Buffer, Element> {
     private _cdata: boolean;
     private _document: Document | null;
     private readonly _filter: IElementFilter;
-    private _parsedEnded: boolean;
+    private _parserClosed: boolean;
+    private _paused: boolean;
+    private _written: number;
     
     constructor(filter: IElementFilter) {
         super({
@@ -28,13 +30,15 @@ export class XmlStream extends Transform<string | Buffer, Element> {
         this._parser.on('startCdata', this._onStartCData.bind(this));
         this._parser.on('endCdata', this._onEndCData.bind(this));
         this._parser.on('xmlDecl', this._onXmlDeclaration.bind(this));
+        this._parser.on('close', this._onParserClose.bind(this));
         this._parser.on('error', this._onParserError.bind(this));
-        this._parser.on('end', this._onParserEnd.bind(this));
         
         this._stack = [];
         this._cdata = false;
         this._document = null;
         this._filter = filter;
+        this._paused = false;
+        this._written = 0;
     }
     
     private _onStartElement(this: XmlStream, name: string, attributes: NamedCollection<string>) {
@@ -42,6 +46,7 @@ export class XmlStream extends Transform<string | Buffer, Element> {
         if (this._stack.length === 0) {
             this._document = DOM.createDocument(attributes['xmlns'] || null, name, null);
             node = this._document.documentElement;
+            this._stack.push(node);
         } else if (this._document) {
             node = this._document.createElement(name);
             this._stack[this._stack.length - 1].appendChild(node);
@@ -69,25 +74,25 @@ export class XmlStream extends Transform<string | Buffer, Element> {
             } else if (this._stack.length !== 0) {
                 try {
                     const info: IElementInfo = {
-                        level: this._stack.length,
+                        level: this._stack.length - 1,
                         document: this._document,
                         element: node
                     };
                     if (this._filter.write(info)) {
-                        this.push(node);
+                        if (!this.push(node)) {
+                            this._parser.pause();
+                            this._paused = true;
+                        }
                     }
                     if (!this._filter.keep(info) && node.parentElement) {
                         node.parentElement.removeChild(node);
                     }
                 } catch (error) {
-                    this._parser.emit('error', error);
+                    this.destroy(error);
                 }
             }
-            if (this._stack.length === 0) {
-                // console.info('Parsing almost done', this._);
-            }
         } else {
-            this._parser.emit('error', new Error('Stack is empty'));
+            this.destroy(new Error('Stack is empty'));
         }
     }
     
@@ -100,7 +105,7 @@ export class XmlStream extends Transform<string | Buffer, Element> {
                 this._stack[this._stack.length - 1].appendChild(text);
             }
         } else {
-            this._parser.emit('error', new Error('Empty document'));
+            this.destroy(new Error('Empty document'));
         }
     }
     
@@ -119,16 +124,24 @@ export class XmlStream extends Transform<string | Buffer, Element> {
     }
     
     private _onParserError(this: XmlStream, error: string | Error) {
-        if (typeof error === 'string') {
-            this.emit('error', new Error(error));
-        } else {
-            this.emit('error', error);
-        }
+        /**
+         * Suppressing parser errors
+         **/
     }
     
-    private _onParserEnd(this: XmlStream) {
-        this._parsedEnded = true;
-        this.emit('end');
+    private _onParserClose(this: XmlStream) {
+        this._parserClosed = true;
+    }
+    
+    public _read(size: number): void {
+        if (this._paused) {
+            this._paused = false;
+            this._parser.resume();
+            if (!this._paused) {
+                this._parser.emit('resume');
+            }
+        }
+        super._read(size);
     }
     
     public _transform(chunk: string | Buffer, encoding: string, callback: (error?: Error | null, chunk?: Element) => any) {
@@ -137,68 +150,62 @@ export class XmlStream extends Transform<string | Buffer, Element> {
             exception = error;
         };
         const _finally = () => {
-            this.removeListener('error', _error);
-            callback(exception);
+            try {
+                callback(exception);
+            } catch (error) {}
         };
         
-        this.once('error', _error);
-        try {
-            if (!this._parsedEnded) {
-                this._parser.write(chunk);
-            } else {
-                exception = new Error('Already ended');
+        if (typeof chunk === 'string') {
+            chunk = Buffer.from(chunk, encoding);
+        }
+        const _process = () => {
+            try {
+                if (this._parser.write(chunk)) {
+                    this._written += chunk.length;
+                } else {
+                    const error = this._parser.getError();
+                    if (error) {
+                        exception = new Error(error);
+                    }
+                }
+                if (this._paused) {
+                    this._parser.once('resume', _finally);
+                } else {
+                    _finally();
+                }
+            } catch (error) {
+                _error(error);
+                _finally();
             }
-            _finally();
-        } catch (error) {
-            _error(error);
-            _finally();
+        };
+        if (this._paused) {
+            this._parser.once('resume', _process);
+        } else {
+            _process();
         }
     }
     
-    public end(cb?: (error?: Error | null) => any): void;
-    public end(chunk: string | Buffer, cb?: (error?: Error | null) => any): void;
-    public end(chunk: string | Buffer, encoding?: string, cb?: (error?: Error | null) => any): void;
-    public end(first?: string | Buffer | ((error?: Error | null) => any), second?: string | ((error?: Error | null) => any), third?: (error?: Error | null) => any): void {
-        let callback: ((error?: Error | null) => void) | undefined;
-        if (typeof first === 'function') {
-            callback = first;
-        } else if (typeof second === 'function') {
-            callback = second;
-        } else if (typeof third === 'function') {
-            callback = third;
-        }
-        if (callback) {
-            let success: () => void;
-            let fail: (error: Error) => void;
-            const unsubscribe = () => {
-                this.removeListener('end', success);
-                this.removeListener('error', fail);
-            };
-            
-            success = () => {
-                if (callback) {
-                    callback();
-                }
-                unsubscribe();
-            };
-            fail = (error: Error) => {
-                if (callback) {
-                    callback(error);
-                }
-                unsubscribe();
-            };
-            this.on('end', success);
-            this.on('error', fail);
-        }
-        if (this._parsedEnded) {
-            this.emit('error', new Error('Already ended'));
-            return;
-        }
-        
-        if (typeof first === 'string' || first instanceof Buffer) {
-            this._parser.end(first);
-        } else {
+    public _final(callback: (error?: Error | null) => any): void {
+        let exception: Error | null = null;
+        const _catch = (error?: Error | string) => {
+            if (error instanceof Error) {
+                exception = error;
+            } else if (typeof error === 'string' && error) {
+                exception = new Error(error);
+            }
+            this._parser.removeListener('error', _catch);
+            this._parser.removeListener('end', _catch);
+            callback(exception);
+        };
+        const _process = () => {
+            this._parser.once('error', _catch);
+            this._parser.once('end', _catch);
             this._parser.end();
+        };
+        if (this._paused) {
+            this._parser.once('resume', _process);
+        } else {
+            _process();
         }
     }
 }

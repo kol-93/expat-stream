@@ -1,12 +1,11 @@
 {
   "name": "expat-stream",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "XML stream processor implemented using expat parser",
   "main": "distribution/core/index.js",
   "scripts": {
     "compile": "tsc --project tsconfig.json",
-    "test": "mocha --slow 0 distribution/test",
-    "example": "node examples/example.js"
+    "test": "mocha --slow 0 distribution/test"
   },
   "repository": {
     "type": "git",

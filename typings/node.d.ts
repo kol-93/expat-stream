@@ -5508,6 +5508,7 @@ declare module "stream" {
         export class Transform<InputType = string | Buffer, OutputType = string | Buffer> extends Duplex<InputType, OutputType> {
             constructor(opts?: TransformOptions<InputType, OutputType>);
             _transform(this: Transform<InputType, OutputType>, chunk: InputType, encoding: string, callback: (error?: Error | null, chunk?: OutputType) => any): void;
+            _flush(callback: (error?: Error | null) => any): void;
             destroy(error?: Error): void;
         }
         

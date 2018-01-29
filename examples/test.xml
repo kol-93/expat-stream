@@ -1,0 +1,5 @@
+<stream>
+    <item number="1"><message>Hello</message><message>World</message></item>
+    <garbage x="1" y="2"><item number="x"></item></garbage>
+    <item number="2"><message>Foo</message><message>Bar</message><message>Baz</message></item>
+</stream>
