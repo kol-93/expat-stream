@@ -17,7 +17,7 @@ export interface IElementInfo {
     readonly level: number;
 }
 
-export type ElementProcessor = (info: IElementInfo) => boolean;
+export type ElementProcessor = (info: IElementInfo) => boolean | Promise<boolean>;
 
 /**
  * Minimal interface for element filter
@@ -28,21 +28,21 @@ export interface IElementFilter {
      * @param {IElementInfo} info
      * @return {boolean}
      */
-    write(this: IElementFilter, info: IElementInfo): boolean;
+    emit(this: IElementFilter, info: IElementInfo): boolean | Promise<boolean>;
     
     /**
      * Makes decision about saving/keeping element in the DOM tree
      * @param {IElementInfo} info
      * @return {boolean}
      */
-    keep(this: IElementFilter, info: IElementInfo): boolean;
+    keep(this: IElementFilter, info: IElementInfo): boolean | Promise<boolean>;
 }
 
 /**
  * Options for ElementFilter constructor
  */
 export interface ElementFilterOptions {
-    write?: ElementProcessor;
+    emit?: ElementProcessor;
     keep?: ElementProcessor;
 }
 
@@ -55,27 +55,27 @@ function _NotImplemented(name): never {
  */
 export class ElementFilter implements IElementFilter {
     protected __keep?: ElementProcessor;
-    protected __write?: ElementProcessor;
+    protected __emit?: ElementProcessor;
     
     public constructor(options?: ElementFilterOptions) {
         if (options) {
             if (typeof options.keep === 'function') {
                 this.__keep = options.keep;
             }
-            if (typeof options.write === 'function') {
-                this.__write = options.write;
+            if (typeof options.emit === 'function') {
+                this.__emit = options.emit;
             }
         }
     }
     
-    public write(this: ElementFilter, info: IElementInfo): boolean {
-        if (typeof this.__write === 'function') {
-            return this.__write(info);
+    public emit(this: ElementFilter, info: IElementInfo): boolean | Promise<boolean> {
+        if (typeof this.__emit === 'function') {
+            return this.__emit(info);
         }
         throw new Error(`write(info) is not implemented`);
     }
     
-    public keep(this: ElementFilter, info: IElementInfo): boolean {
+    public keep(this: ElementFilter, info: IElementInfo): boolean | Promise<boolean> {
         if (typeof this.__keep === 'function') {
             return this.__keep(info);
         }

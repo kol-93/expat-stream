@@ -68,7 +68,7 @@ client.connect(CONNECTION_PORT, '127.0.0.1', () => {
          * {"number":1,"messages":["Hello","World"]}
          * {"number":2,"messages":["Foo","Bar","Baz"]}
          *
-         * <garbage> is skipped because filter.write() returns `false` on them
+         * <garbage> is skipped because filter.emit() returns `false` on them
          */
         console.log(JSON.stringify(item));
     });

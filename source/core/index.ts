@@ -1,5 +1,5 @@
 
-export {XmlStream} from './xml.stream';
+export {XMLStream} from './xml.stream';
 
 export {
     IElementInfo,
