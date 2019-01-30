@@ -1,39 +1,35 @@
 
 import { EventEmitter } from 'events';
-import {NamedCollection, Parser} from "node-expat";
-import {DOMImplementation} from "xmldom";
+import { Parser } from "node-expat";
+import { DOMImplementation } from "xmldom";
+import { NameSpace, TypedEmitter } from './typed.emitter';
 
 const DOM = new DOMImplementation();
 
-interface _Emitter<EventType = string | symbol, Args extends any[] = any[]> {
-    emit(event: EventType, ...args: Args): boolean;
-    
-    addListener(event: EventType, listener: (...args: Args) => void): this;
-    on(event: EventType, listener: (...args: Args) => void): this;
-    once(event: EventType, listener: (...args: Args) => void): this;
-    prependListener(event: EventType, listener: (...args: Args) => void): this;
-    prependOnceListener(event: EventType, listener: (...args: Args) => void): this;
-    removeListener(event: EventType, listener: (...args: Args) => void): this;
+interface XMLStreamEventsMap extends NameSpace<any[]> {
+    /**
+     *
+     */
+    startElement: [Element, number, Document];
+    endElement: [Element, number, Document];
+    updateElement: [Node, Element, number, Document];
+    close: [];
+    error: [Error];
 }
 
-
-export type IXMLStreamEmitter = EventEmitter
-    & _Emitter<'element', [Element, number, Document]>
-    & _Emitter<'close', []>
-    & _Emitter<'error', [Error]>
-    ;
-
-
-export interface IXMLStream extends IXMLStreamEmitter {
-    
+export interface IXMLStream extends TypedEmitter<XMLStreamEventsMap> {
+    /**
+     * Pauses parsing
+     */
     pause(): void;
     
+    /**
+     * Resumes parsing
+     */
     resume(): void;
-    
 }
 
-
-export class XMLStream extends EventEmitter implements IXMLStream {
+class _XMLStream extends EventEmitter implements IXMLStream {
     private readonly _parser: Parser;
     private readonly _stack: Element[];
     private _cdata: boolean;
@@ -45,14 +41,14 @@ export class XMLStream extends EventEmitter implements IXMLStream {
     constructor(stream: NodeJS.ReadableStream) {
         super();
         this._parser = new Parser();
-        this._parser.on('startElement', this._onStartElement.bind(this));
-        this._parser.on('endElement', this._onEndElement.bind(this));
-        this._parser.on('text', this._onText.bind(this));
-        this._parser.on('startCdata', this._onStartCData.bind(this));
-        this._parser.on('endCdata', this._onEndCData.bind(this));
-        this._parser.on('xmlDecl', this._onXmlDeclaration.bind(this));
-        this._parser.on('close', this._onParserClose.bind(this));
-        this._parser.on('error', this._onParserError.bind(this));
+        this._parser.on('startElement', this._onStartElement);
+        this._parser.on('endElement', this._onEndElement);
+        this._parser.on('text', this._onText);
+        this._parser.on('startCdata', this._onStartCData);
+        this._parser.on('endCdata', this._onEndCData);
+        this._parser.on('xmlDecl', this._onXmlDeclaration);
+        this._parser.on('close', this._onParserClose);
+        this._parser.on('error', this._onParserError);
         
         this._stack = [];
         this._cdata = false;
@@ -62,12 +58,11 @@ export class XMLStream extends EventEmitter implements IXMLStream {
         stream.pipe(this._parser);
     }
     
-    private _onStartElement(this: XMLStream, name: string, attributes: NamedCollection<string>) {
+    private readonly _onStartElement = (name: string, attributes: NameSpace<string>) => {
         let node: Element;
         if (this._stack.length === 0) {
             this._document = DOM.createDocument(attributes['xmlns'] || null, name, null);
             node = this._document.documentElement!;
-            this._stack.push(node);
         } else if (this._document) {
             node = this._document.createElement(name);
             this._stack[this._stack.length - 1].appendChild(node);
@@ -75,15 +70,19 @@ export class XMLStream extends EventEmitter implements IXMLStream {
             this._parser.emit('error', new Error('Empty document'));
             return;
         }
-        for (let attrName in attributes) {
+        for (let attrName of Object.keys(attributes)) {
             const attr = this._document.createAttribute(attrName);
             attr.value = attributes[attrName];
             node.attributes.setNamedItem(attr);
         }
         this._stack.push(node);
-    }
+        this.emit('startElement', node, this._stack.length - 1, this._document);
+        if (this._stack.length > 1) {
+            this.emit('update', node, this._stack[this._stack.length - 1], this._document);
+        }
+    };
     
-    private _onEndElement(this: XMLStream, name: string) {
+    private readonly _onEndElement = (name: string) => {
         const node = this._stack.pop();
         if (node) {
             if (node.nodeName !== name) {
@@ -92,9 +91,9 @@ export class XMLStream extends EventEmitter implements IXMLStream {
             } else if (!this._document) {
                 this._parser.emit('error', new Error('Empty document'));
                 return;
-            } else if (this._stack.length !== 0) {
+            } else if (this._stack.length >= 0) {
                 try {
-                    this.emit('element', node, this._stack.length - 1, this._document);
+                    this.emit('endElement', node, this._stack.length, this._document);
                 } catch (error) {
                     this.emit('error', error);
                 }
@@ -102,47 +101,48 @@ export class XMLStream extends EventEmitter implements IXMLStream {
         } else {
             this.emit('error', new Error('Stack is empty'));
         }
-    }
+    };
     
-    private _onText(this: XMLStream, value: string) {
+    private readonly _onText = (value: string) => {
         if (this._document) {
             const text = this._cdata ? this._document.createTextNode(value) : this._document.createCDATASection(value);
-            if (this._stack.length === 0) {
-                this._document.documentElement!.appendChild(text);
-            } else {
-                this._stack[this._stack.length - 1].appendChild(text);
-            }
+            // const target = this._stack.length !== 0
+            //     ? this._stack[this._stack.length - 1]
+            //     : this._document.documentElement!;
+            const target = this._stack[this._stack.length - 1];
+            target.appendChild(text);
+            this.emit('updateElement', text, target, this._stack.length - 1, this._document);
         } else {
             this.emit('error', new Error('Empty document'));
         }
-    }
+    };
     
-    private _onStartCData(this: XMLStream) {
+    private readonly _onStartCData = () => {
         this._cdata = true;
-    }
+    };
     
-    private _onEndCData(this: XMLStream) {
+    private readonly _onEndCData = () => {
         this._cdata = false;
-    }
+    };
     
-    private _onXmlDeclaration(this: XMLStream, version: string | null, encoding: string | null, standalone: boolean) {
+    private readonly _onXmlDeclaration = (version: string | null, encoding: string | null, standalone: boolean) => {
         if (encoding) {
             this._parser.setEncoding(encoding);
         }
-    }
+    };
     
-    private _onParserError(this: XMLStream, error: string | Error) {
+    private readonly _onParserError = (error: string | Error) => {
         if (typeof error === 'string') {
             this.emit('error', new Error(error));
         } else {
             this.emit('error', error);
         }
-    }
+    };
     
-    private _onParserClose(this: XMLStream) {
+    private readonly _onParserClose = () => {
         this.emit('close');
         this._parserClosed = true;
-    }
+    };
     
     public pause() {
         if (!this._paused) {
@@ -158,3 +158,7 @@ export class XMLStream extends EventEmitter implements IXMLStream {
         }
     }
 }
+
+export const XMLStream: {
+    new (stream: NodeJS.ReadableStream): IXMLStream;
+} = _XMLStream;

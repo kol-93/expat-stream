@@ -1,6 +1,6 @@
 {
   "name": "expat-stream",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "XML stream processor implemented using expat parser",
   "main": "distribution/core/index.js",
   "scripts": {
@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/chai": "^4.1.2",
     "@types/mocha": "^2.2.47",
-    "@types/node": "^8.0.0",
+    "@types/node": "^10.0.0",
     "@types/xmldom": "^0.1.29",
     "chai": "^4.1.2",
     "mocha": "^5.0.0",
@@ -37,9 +37,9 @@
   },
   "dependencies": {
     "node-expat": "^2.3.16",
-    "xmldom": "^0.1.27"
+    "xmldom": "git+https://github.com/kol-93/xmldom.git"
   },
   "engines": {
-    "node": "^8.0.0"
+    "node": "^10.0.0"
   }
 }

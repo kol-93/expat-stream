@@ -4,39 +4,49 @@
 //                 Oleksandr Fedorchuk <https://github.com/kol-93>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
+
 declare module "node-expat" {
-    import {Stream} from "stream";
-    
-    export interface NamedCollection<Type> {
-        [name: string]: Type;
+    import { Stream } from "stream";
+    import { EventEmitter } from "events";
+
+    interface NameSpace<ValueType = any> {
+        [key: string]: ValueType;
     }
     
-    interface _Emitter<EventType = string | symbol, Args extends any[] = any[]> {
-        emit(event: EventType, ...args: Args): boolean;
+    interface TypedEmitter<EventMapType extends NameSpace<any[]>> extends EventEmitter {
+        addListener<Event extends keyof EventMapType>           (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        on<Event extends keyof EventMapType>                    (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        once<Event extends keyof EventMapType>                  (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        prependListener<Event extends keyof EventMapType>       (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        prependOnceListener<Event extends keyof EventMapType>   (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        removeListener<Event extends keyof EventMapType>        (event: Event, listener: (...args: EventMapType[Event]) => void): this;
+        emit<Event extends keyof EventMapType>                  (event: Event, ...args: EventMapType[Event]): boolean;
         
-        addListener(event: EventType, listener: (...args: Args) => void): this;
-        on(event: EventType, listener: (...args: Args) => void): this;
-        once(event: EventType, listener: (...args: Args) => void): this;
-        prependListener(event: EventType, listener: (...args: Args) => void): this;
-        prependOnceListener(event: EventType, listener: (...args: Args) => void): this;
-        removeListener(event: EventType, listener: (...args: Args) => void): this;
+        addListener                                             (event: string | symbol, listener: (...args: any[]) => void): this;
+        on                                                      (event: string | symbol, listener: (...args: any[]) => void): this;
+        once                                                    (event: string | symbol, listener: (...args: any[]) => void): this;
+        prependListener                                         (event: string | symbol, listener: (...args: any[]) => void): this;
+        prependOnceListener                                     (event: string | symbol, listener: (...args: any[]) => void): this;
+        removeListener                                          (event: string | symbol, listener: (...args: any[]) => void): this;
+        emit                                                    (event: string | symbol, ...args: any[]): boolean;
     }
     
-    export class Parser extends Stream
-                        implements NodeJS.WritableStream,
-                                   _Emitter,
-                                   _Emitter<'startElement', [string, NamedCollection<string>]>,
-                                   _Emitter<'endElement', [string]>,
-                                   _Emitter<'text', [string]>,
-                                   _Emitter<'processingInstruction', [string, string]>,
-                                   _Emitter<'comment', [string]>,
-                                   _Emitter<'xmlDecl', [string | null, string | null, boolean]>,
-                                   _Emitter<'startCdata', []>,
-                                   _Emitter<'endCdata', []>,
-                                   _Emitter<'entityDecl', [string | null, boolean, string | null, string | null, string | null, string | null, string | null]>,
-                                   _Emitter<'end', []>,
-                                   _Emitter<'close', []>,
-                                   _Emitter<'error', [string | Error]>
+    interface ParserEventsMap extends NameSpace<any[]> {
+        startElement: [string, NameSpace<string>];
+        endElement: [string];
+        text: [string];
+        comment: [string];
+        processingInstruction: [string, string];
+        xmlDecl: [string | null, string | null, boolean];
+        startCdata: [];
+        endCdata: [];
+        entityDecl: [string | null, boolean, string | null, string | null, string | null, string | null, string | null];
+        end: [];
+        close: [];
+        error: [string | Error];
+    }
+    
+    export class Parser extends Stream implements NodeJS.WritableStream, TypedEmitter<ParserEventsMap>
     {
         readonly writable: boolean;
         stop(): this;
@@ -63,5 +73,5 @@ declare module "node-expat" {
         getCurrentByteIndex(this: Parser): number;
     }
     
-    export function createParser(callback?: (name: string, attributes: NamedCollection<string>) => void): Parser;
+    export function createParser(callback?: (name: string, attributes: NameSpace<string>) => void): Parser;
 }
